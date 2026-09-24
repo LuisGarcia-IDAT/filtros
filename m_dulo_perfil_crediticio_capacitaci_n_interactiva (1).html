@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Módulo Perfil Crediticio - Crédito Convenio</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            bcp: {
+              navy: '#002A54',
+              blue: '#005696',
+              lightBlue: '#C5DDF2',
+              iceBg: '#F3F8FD',
+              rowOdd: '#FFFFFF',
+              rowEven: '#EAF3FB',
+              accent: '#FF7800',
+              passGreen: '#168038',
+              failRed: '#DC2626',
+              borderSky: '#96BEE6'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .bcp-table-border {
+      border: 1px solid #99c2ea;
+    }
+    .bcp-header-box {
+      background-color: #CCE2F7;
+      border: 1px solid #84B3E0;
+    }
+    .check-icon {
+      color: #1a8738;
+      filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1));
+    }
+    .cross-icon {
+      color: #df2424;
+      font-weight: 900;
+      filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1));
+    }
+    .filter-clickable {
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+    }
+    .filter-clickable:hover {
+      background-color: #dbeafe !important;
+    }
+    /* Pulse for trainer focus */
+    @keyframes pulseFocus {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+    }
+    .highlight-fail {
+      animation: pulseFocus 1.5s infinite;
+      background-color: #fee2e2 !important;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col antialiased">
+
+  <header class="bg-bcp-navy text-white px-4 py-3 shadow-md border-b-4 border-bcp-accent sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="bg-white/10 p-2 rounded-lg text-amber-400">
+          <i class="fa-solid fa-id-card-clip text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-base md:text-lg font-bold tracking-tight text-white flex items-center gap-2">
+            Capacitación: <span class="text-orange-400 font-semibold">Módulo Perfil Crediticio</span>
+          </h1>
+          <p class="text-xs text-slate-300">Filtros Básicos y Score de Crédito Efectivo / Convenio</p>
+        </div>
+      </div>
+
+      <!-- Quick interactive controls -->
+      <div class="flex items-center gap-2 flex-wrap text-xs">
+        <button id="btnToggleQuiz" class="px-3 py-1.5 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition flex items-center gap-1.5 shadow-sm">
+          <i class="fa-solid fa-graduation-cap"></i> <span id="lblQuizToggle">Modo Preguntas al Equipo</span>
+        </button>
+        <button id="btnCheatSheet" class="px-3 py-1.5 font-semibold bg-blue-700 hover:bg-blue-800 text-white rounded-md transition flex items-center gap-1.5 shadow-sm">
+          <i class="fa-solid fa-book-open"></i> Glosario de Filtros
+        </button>
+        <button id="btnFullScreen" class="px-3 py-1.5 font-medium bg-white/10 hover:bg-white/20 text-slate-200 rounded-md transition flex items-center gap-1">
+          <i class="fa-solid fa-expand"></i> Pantalla Completa
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="bg-white border-b border-slate-200 px-4 py-2.5 shadow-sm">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-2 text-xs">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="font-bold text-slate-600 flex items-center gap-1.5">
+          <i class="fa-solid fa-sliders text-bcp-blue"></i> Seleccionar Escenario:
+        </span>
+        <div class="flex items-center gap-1 overflow-x-auto py-1 max-w-full">
+          <button onclick="loadScenario('ideal')" class="scenario-pill px-2.5 py-1 rounded border font-semibold transition bg-bcp-blue text-white border-bcp-blue" data-case="ideal">
+            🌟 Ideal (100% Aprobado)
+          </button>
+          <button onclick="loadScenario('no_score')" class="scenario-pill px-2.5 py-1 rounded border font-semibold transition bg-white text-slate-700 hover:bg-slate-100 border-slate-300" data-case="no_score">
+            ⚠️ Filtros OK, Sin Score
+          </button>
+          <!-- Cases 1 to 10 from user slide -->
+          <div class="h-4 w-px bg-slate-300 mx-1"></div>
+          <span class="text-slate-400 font-semibold text-[11px]">Casos PPT:</span>
+          <button onclick="loadScenario(1)" class="scenario-pill px-2 py-1 rounded border font-semibold transition bg-white text-slate-700 hover:bg-slate-100 border-slate-300" data-case="1">1</button>
+          <button onclick="loadScenario(2)" class="scenario-pill px-2 py-1 rounded border font-semibold transition bg-white text-slate-700 hover:bg-slate-100 border-slate-300" data-case="2">2</button>
+          <button onclick="loadScenario(3)" class="scenario-pill px-2 py-1 rounded border font-semibold transition bg-white text-slate-700 hover:bg-slate-100 border-slate-300" data-case="3">3</button>
+          <button onclick="loadScenario(4)" class="scenario-pill px-2 py-1 rounded border font-semibold transition bg-white text-slate-700 hover:bg-slate-100 border-slate-300" data-case="4">4</button>
+          <button onclick="loadScenario(5)" class="scenario-pill px-2 py-1 rounded border font-semibold transition bg-white text-slate-700 hover:bg-slate-100 border-slate-300" data-case="5">5</button>
+          <button onclick="loadScenario(6)" class="scenario-pill px-2 py-1 rounded border font-semibold transition bg-white text-slate-700 hover:bg-slate-100 border-slate-300" data-case="6">6</button>
+          <button onclick="loadScenario(7)" class="scenario-pill px-2 py-1 rounded border font-semibold transition bg-white text-slate-700 hover:bg-slate-100 border-slate-300" data-case="7">7</button>
+          <button onclick="loadScenario(8)" class="scenario-pill px-2 py-1 rounded border font-semibold transition bg-white text-slate-700 hover:bg-slate-100 border-slate-300" data-case="8">8</button>
+          <button onclick="loadScenario(9)" class="scenario-pill px-2 py-1 rounded border font-semibold transition bg-white text-slate-700 hover:bg-slate-100 border-slate-300" data-case="9">9</button>
+          <button onclick="loadScenario(10)" class="scenario-pill px-2 py-1 rounded border font-semibold transition bg-white text-slate-700 hover:bg-slate-100 border-slate-300" data-case="10">10</button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5 self-end md:self-auto">
+        <button id="btnPrevCase" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-semibold transition">
+          <i class="fa-solid fa-chevron-left"></i> Ant.
+        </button>
+        <button id="btnNextCase" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-semibold transition">
+          Sig. <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto p-3 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    
+    <!-- LEFT COLUMN: Authentic BCP Módulo Perfil Crediticio Screen -->
+    <section class="lg:col-span-7 bg-white rounded-xl shadow-md border border-slate-300 p-4 md:p-6 relative">
+      
+      <!-- Screen Top Metadata Header (Exact to screenshot) -->
+      <div class="flex justify-between items-start text-xs md:text-sm text-slate-800 mb-3 leading-relaxed">
+        <div class="space-y-1">
+          <div><strong class="font-bold">Tipo de documento</strong> <span class="ml-10 font-mono">DNI</span></div>
+          <div><strong class="font-bold">Numero de documento</strong> <span class="ml-5 font-mono" id="docNumber">4241329</span></div>
+          <div><strong class="font-bold">Fecha de Consulta:</strong> <span class="ml-9">Miércoles 23 Setiembre - 02:30 P.M.</span></div>
+          <div class="pt-1">
+            <button class="px-3 py-0.5 border border-slate-400 bg-slate-100 rounded text-xs text-slate-700 hover:bg-slate-200 font-medium">
+              Regresar
+            </button>
+          </div>
+        </div>
+
+        <div class="text-right">
+          <div class="font-bold text-slate-900 text-sm md:text-base">Cliente</div>
+          <div id="clientStatusBadge" class="mt-1 inline-block px-2.5 py-0.5 rounded text-xs font-bold bg-blue-100 text-bcp-blue border border-blue-200">
+            Convenio Activo
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Title Banner -->
+      <div class="text-center my-3 border-t border-slate-200 pt-3">
+        <h2 class="text-base md:text-xl font-bold tracking-wide text-blue-600 uppercase">
+          MÓDULO PERFIL CREDITICIO
+        </h2>
+      </div>
+
+      <!-- Table Section 1: Filtros Básicos -->
+      <div class="mt-4">
+        <div class="flex items-center justify-between mb-1.5">
+          <div class="font-bold italic text-sm md:text-base text-slate-900">
+            1.- Filtros Basicos
+          </div>
+          <span class="text-[11px] text-slate-500 italic hidden sm:inline">
+            <i class="fa-solid fa-hand-pointer text-blue-500"></i> Haz clic en cualquier filtro para ver su regla
+          </span>
+        </div>
+
+        <!-- Table 1 Container -->
+        <div class="bcp-table-border rounded overflow-hidden shadow-sm">
+          <!-- Table Header -->
+          <div class="grid grid-cols-12">
+            <div class="col-span-8 md:col-span-9 bg-white p-2"></div>
+            <div class="col-span-4 md:col-span-3 bcp-header-box p-2 text-center font-bold text-xs md:text-sm text-slate-800">
+              Crédito Convenio
+            </div>
+          </div>
+
+          <!-- 13 Basic Filters Rows -->
+          <div id="filtersContainer" class="text-xs md:text-sm divide-y divide-blue-100">
+            <!-- Dynamically generated via JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Table Section 2: Score Credito Efectivo y Convenio -->
+      <div class="mt-6">
+        <div class="font-bold italic text-sm md:text-base text-slate-900 mb-1.5">
+          2. Score Credito Efectivo y Convenio
+        </div>
+
+        <div class="bcp-table-border rounded overflow-hidden shadow-sm">
+          <!-- Score Rows -->
+          <div id="scoresContainer" class="text-xs md:text-sm divide-y divide-blue-100">
+            <!-- Dynamically generated via JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick indicator summary footer -->
+      <div class="mt-4 pt-3 border-t border-slate-200 flex flex-wrap justify-between items-center gap-2 text-xs">
+        <div class="flex items-center gap-3">
+          <span class="flex items-center gap-1 font-semibold text-slate-700">
+            <i class="fa-solid fa-check check-icon text-sm"></i> Cumple / Aprobado
+          </span>
+          <span class="flex items-center gap-1 font-semibold text-slate-700">
+            <i class="fa-solid fa-xmark cross-icon text-sm"></i> No Cumple / Bloqueante
+          </span>
+        </div>
+        <div class="text-slate-400 font-mono text-[11px]">
+          Filtros de Riesgo & Oferta BCP v4.2
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN: Trainer Coaching Panel, Verdict & Interactive Tools -->
+    <section class="lg:col-span-5 flex flex-col gap-4">
+      
+      <!-- Verdict Card -->
+      <div id="verdictCard" class="bg-white rounded-xl shadow-md border-2 border-emerald-400 p-5 relative overflow-hidden transition-all duration-300">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Dictamen del Sistema</span>
+            <h3 id="verdictTitle" class="text-xl font-extrabold text-emerald-700 flex items-center gap-2">
+              <i id="verdictIcon" class="fa-solid fa-circle-check"></i>
+              <span>APROBADO PARA VENTA</span>
+            </h3>
+          </div>
+          <div id="verdictTag" class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+            Viable 100%
+          </div>
+        </div>
+
+        <p id="verdictSummary" class="text-xs md:text-sm text-slate-700 mt-2 leading-relaxed">
+          El cliente supera con éxito los 13 Filtros Básicos y cuenta con Score positivo tanto para Línea Disponible/Retiro de Efectivo (LD/RE) como Compra de Deuda (CdD).
+        </p>
+
+        <!-- Metrics count -->
+        <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-100 text-xs">
+          <div class="bg-slate-50 p-2 rounded border border-slate-200">
+            <span class="text-slate-500 text-[10px] block uppercase font-bold">Filtros Básicos</span>
+            <span id="metricFilters" class="font-bold text-emerald-700 font-mono text-sm">13 de 13 aprobados</span>
+          </div>
+          <div class="bg-slate-50 p-2 rounded border border-slate-200">
+            <span class="text-slate-500 text-[10px] block uppercase font-bold">Score Comercial</span>
+            <span id="metricScores" class="font-bold text-emerald-700 font-mono text-sm">2 de 2 aprobados</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-md border border-slate-200 p-5">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2 text-brand-navy font-bold text-sm">
+            <div class="w-7 h-7 rounded-lg bg-orange-100 text-brand-orange flex items-center justify-center text-xs">
+              <i class="fa-solid fa-bullhorn text-amber-600"></i>
+            </div>
+            <span>Speech Coloquial para el Capacitador</span>
+          </div>
+          <button id="btnCopySpeech" class="px-2.5 py-1 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-300 transition flex items-center gap-1 shadow-sm">
+            <i class="fa-regular fa-copy"></i> Copiar
+          </button>
+        </div>
+
+        <!-- Speech dialog container -->
+        <div class="bg-gradient-to-br from-amber-50/70 to-orange-50/70 border border-orange-200 rounded-xl p-3.5 text-xs md:text-sm text-slate-700 leading-relaxed font-sans shadow-inner">
+          <p id="trainerSpeechText" class="italic">
+            <!-- Dynamic Speech -->
+          </p>
+        </div>
+
+        <!-- Coach Tip -->
+        <div class="mt-3 p-2.5 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-900 flex items-start gap-2">
+          <i class="fa-solid fa-chalkboard-user text-blue-600 text-sm mt-0.5"></i>
+          <div>
+            <strong class="font-bold">Tip de Capacitación:</strong>
+            <span id="trainerTipText">Recuerda siempre verificar si la caída es por Filtro de Riesgo (SBS/BCP) o por Score de Campaña.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Quiz / Team Challenge Panel -->
+      <div id="quizPanel" class="hidden bg-slate-900 text-white rounded-xl shadow-lg border border-slate-700 p-5">
+        <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-amber-400 text-base"><i class="fa-solid fa-circle-question"></i></span>
+            <span class="font-bold text-sm">Pregunta en Vivo al Equipo</span>
+          </div>
+          <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-mono">Modo Participación</span>
+        </div>
+
+        <p class="text-xs text-slate-200 mb-3">
+          Pregunta a los participantes: <strong>"Observando esta pantalla, ¿este cliente califica para desembolsar su Crédito Convenio hoy?"</strong>
+        </p>
+
+        <div class="grid grid-cols-2 gap-2 mb-3">
+          <button onclick="testParticipantAnswer(true)" class="py-2.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-thumbs-up"></i> SÍ Califica
+          </button>
+          <button onclick="testParticipantAnswer(false)" class="py-2.5 px-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-thumbs-down"></i> NO Califica
+          </button>
+        </div>
+
+        <div id="quizAnswerFeedback" class="hidden p-3 rounded-lg text-xs leading-snug">
+          <!-- Feedback filled dynamically -->
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL: Detailed Definition of Filters (Cheat Sheet) -->
+  <div id="cheatSheetModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 relative border border-slate-200 max-h-[85vh] flex flex-col">
+      <button id="btnCloseCheatSheet" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="flex items-center gap-3 mb-3 shrink-0">
+        <div class="w-10 h-10 rounded-xl bg-blue-100 text-bcp-blue flex items-center justify-center text-xl font-bold">
+          <i class="fa-solid fa-scale-balanced"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold text-slate-800">Glosario Oficial: Filtros Básicos y Score</h3>
+          <p class="text-xs text-slate-500">¿Qué evalúa cada línea y cuándo se convierte en bloqueo?</p>
+        </div>
+      </div>
+
+      <div class="overflow-y-auto space-y-3 pr-2 text-xs flex-1">
+        <div class="border rounded-lg p-3 bg-slate-50">
+          <h4 class="font-bold text-bcp-navy text-sm">1. Archivo Negativo - Fuerte / Deudas SBS / Deudas BCP</h4>
+          <p class="text-slate-600 mt-1">Registros de listas negras, juicios activos, fraude o morosidad grave histórica reportada ante centrales de riesgo o internamente en el BCP. Es causal de rechazo tajante.</p>
+        </div>
+
+        <div class="border rounded-lg p-3 bg-slate-50">
+          <h4 class="font-bold text-bcp-navy text-sm">2. SBS - Clasificación / Pérdida / Vencido o Refinanciado</h4>
+          <p class="text-slate-600 mt-1">Evalúa la calificación en el sistema financiero (Normal 100%, CPP, Deficiente, Dudoso, Pérdida). Si tiene días de atraso significativos o créditos reestructurados en otras entidades, se bloquea.</p>
+        </div>
+
+        <div class="border rounded-lg p-3 bg-slate-50">
+          <h4 class="font-bold text-bcp-navy text-sm">3. Cartera BCP (Castigada, Judicial, Prejudicial, Refinanciada)</h4>
+          <p class="text-slate-600 mt-1">Mide el historial directo con el banco. Si el cliente tiene deudas impagas enviadas a cobranza judicial o castigo contable en BCP, no se le puede otorgar nuevo crédito.</p>
+        </div>
+
+        <div class="border rounded-lg p-3 bg-slate-50">
+          <h4 class="font-bold text-bcp-navy text-sm">4. Bloqueos Activos y Pasivos BCP</h4>
+          <p class="text-slate-600 mt-1">Restricciones operativas en cuentas de ahorro (pasivos) o productos de crédito/tarjetas (activos), como embargos coactivos, homonimias o actualización obligatoria de datos.</p>
+        </div>
+
+        <div class="border rounded-lg p-3 bg-slate-50">
+          <h4 class="font-bold text-bcp-navy text-sm">5. Segmento</h4>
+          <p class="text-slate-600 mt-1">Verifica que el empleador o institución mantenga el <strong>Convenio vigente y activo</strong> con el BCP y que el colaborador califique para descuento por planilla.</p>
+        </div>
+
+        <div class="border rounded-lg p-3 bg-blue-50 border-blue-200">
+          <h4 class="font-bold text-bcp-navy text-sm">6. Score Credito Efectivo (Venta CEF LD/RE vs CdD)</h4>
+          <p class="text-slate-700 mt-1">
+            <strong>LD/RE (Línea Disponible / Retiro Efectivo):</strong> Crédito en efectivo de libre disponibilidad.<br>
+            <strong>CdD (Compra de Deuda):</strong> Consolidación o compra de saldos de otras entidades.<br>
+            <em>Nota didáctica:</em> Un cliente puede aprobar todos los filtros de riesgo pero tener la cruz en LD/RE o CdD si la campaña comercial no aprobó oferta para ese tipo de producto.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-4 pt-2 border-t text-right shrink-0">
+        <button id="btnCloseCheatSheetBtn" class="px-4 py-2 bg-bcp-navy text-white text-xs font-semibold rounded-lg hover:bg-bcp-blue transition">
+          Entendido
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 bg-bcp-navy text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-xl border border-white/20 transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-2 z-50">
+    <i class="fa-solid fa-circle-check text-emerald-400"></i>
+    <span id="toastMsg">Mensaje copiado correctamente</span>
+  </div>
+
+  <script>
+    // List of the 13 Basic Filters exactly as on the screen
+    const BASIC_FILTERS = [
+      { id: "f1", name: "Archivo Negativo - Fuerte", desc: "Listas de prevención de lavado, fraude o castigos severos." },
+      { id: "f2", name: "SBS- Clasificacion", desc: "Calificación crediticia en la SBS (Debe ser Normal)." },
+      { id: "f3", name: "SBS-Perdida o Judicial", desc: "Reporte de cobranza judicial o calificación Pérdida en el sistema." },
+      { id: "f4", name: "SBS- Vencido o Refinanciado", desc: "Atrasos vigentes o refinanciamientos en cualquier banco/caja." },
+      { id: "f5", name: "Archivo Negativo-Deudas SBS", desc: "Deuda impaga reportada formalmente en centrales de riesgo." },
+      { id: "f6", name: "Clasificacion BCP", desc: "Calificación interna del comportamiento crediticio en el BCP." },
+      { id: "f7", name: "Cartera BCP Castigada o Vendida", desc: "Créditos antiguos que BCP mandó a pérdida o vendió a terceros." },
+      { id: "f8", name: "Cartera BCP Judicial o Prejudicial", desc: "Cobranza legal activa con los estudios jurídicos del banco." },
+      { id: "f9", name: "Cartera BCP Refinanciada", desc: "Acuerdo de refinanciamiento vigente dentro del BCP." },
+      { id: "f10", name: "Otros Bloqueos Activos BCP", desc: "Trabas operativas en tarjetas o créditos del titular." },
+      { id: "f11", name: "Bloqueos Pasivos BCP", desc: "Retenciones judiciales o trabas en cuentas de ahorro/sueldo." },
+      { id: "f12", name: "Archivo Negativo -Deudas BCP", desc: "Deudas en mora vigentes directamente con el BCP." },
+      { id: "f13", name: "Segmento", desc: "Valida si el convenio con la empresa está habilitado y operativo." }
+    ];
+
+    // Scores
+    const SCORES = [
+      { id: "s1", name: "Venta CEF LD/RE", desc: "Score para Efectivo de Libre Disponibilidad / Retiro Efectivo." },
+      { id: "s2", name: "Venta CEF CdD", desc: "Score específico para Compra de Deuda." }
+    ];
+
+    /* 
+     Scenarios reproduction from screenshots:
+     - ideal: All checks (Image 1)
+     - no_score: 13 Filters OK, but scores both fail (Image 3)
+     - 1 to 10: Faithfully mapped from the 10 grid thumbnails in Image 2
+    */
+    const SCENARIOS = {
+      'ideal': {
+        name: "Caso Ideal: Aprobado Total",
+        tag: "100% Viable",
+        isApproved: true,
+        fails: [], // None
+        scoreFails: [],
+        speech: "¡Miren esto equipo, el sueño de todo asesor! El cliente pasa los 13 filtros básicos limpiecitos y tiene luz verde tanto en Libre Disponibilidad como en Compra de Deuda. Aquí no hay trabas: procedemos con el desembolso de inmediato.",
+        tip: "Cuando ambos scores están en verde, evalúa si le conviene más efectivo o compra de deuda con mejor tasa.",
+        verdict: "APROBADO PARA VENTA",
+        verdictType: "success",
+        verdictDesc: "El cliente califica para todas las modalidades de Crédito Convenio."
+      },
+      'no_score': {
+        name: "Caso Particular: Filtros OK, Sin Score",
+        tag: "Sin Oferta Comercial",
+        isApproved: false,
+        fails: [],
+        scoreFails: ["s1", "s2"],
+        speech: "¡Ojo al piojo con este caso! Miren bien: el cliente tiene todos los 13 filtros básicos con check verde, no le debe a nadie ni está manchado. Pero miren abajo: las dos opciones de Score están con equis roja. Quiere decir que el motor de riesgos no le calculó oferta comercial en esta campaña. ¡No se puede forzar la venta!",
+        tip: "No confundir un cliente con mal historial (filtros rojos) con uno sin oferta de campaña (score rojo).",
+        verdict: "RECHAZADO POR SCORE COMERCIAL",
+        verdictType: "warning",
+        verdictDesc: "El cliente tiene riesgo limpio pero no cuenta con campaña o score asignado para desembolso."
+      },
+      1: {
+        name: "Caso 1 (PPT): Doble Falla SBS & Activos",
+        tag: "Rechazado",
+        isApproved: false,
+        fails: ["f4", "f10"], // SBS Vencido o Refinanciado, Otros Bloqueos Activos BCP
+        scoreFails: [],
+        speech: "¡Atentos con el Caso 1! El cliente se cae en 'SBS - Vencido o Refinanciado' y en 'Otros Bloqueos Activos BCP'. Aunque sus dos scores están en verde, los filtros básicos mandan: con mora o refinanciamiento vigente en el sistema, la operación queda totalmente bloqueada.",
+        tip: "Cualquier cruz en los primeros 13 filtros tumba automáticamente la venta aunque el score marque verde.",
+        verdict: "RECHAZADO POR RIESGO",
+        verdictType: "danger",
+        verdictDesc: "Atraso en el sistema financiero y bloqueos internos impiden continuar."
+      },
+      2: {
+        name: "Caso 2 (PPT): Múltiples Bloqueos Severos",
+        tag: "Crítico",
+        isApproved: false,
+        fails: ["f2", "f7", "f11"], // SBS Clasificacion, Cartera Castigada, Bloqueos Pasivos
+        scoreFails: ["s1"], // Venta CEF LD/RE
+        speech: "¡Este Caso 2 es una bomba de tiempo! Tiene mala clasificación SBS, cartera castigada en BCP y bloqueos en sus cuentas pasivas. Encima no da para Libre Disponibilidad. El dictamen es rechazo rotundo sin opción a reclamo.",
+        tip: "La cartera castigada o vendida es una de las marcas más graves en el expediente del cliente.",
+        verdict: "RECHAZADO GRAVE",
+        verdictType: "danger",
+        verdictDesc: "Cliente con historial de castigo contable y mala calificación crediticia."
+      },
+      3: {
+        name: "Caso 3 (PPT): Judicial y Deuda BCP",
+        tag: "Rechazado Legal",
+        isApproved: false,
+        fails: ["f4", "f8", "f12"], // SBS Vencido, Cartera Judicial, Archivo Negativo Deudas BCP
+        scoreFails: ["s2"], // Venta CEF CdD
+        speech: "En el Caso 3 tenemos 'Cartera BCP Judicial o Prejudicial' y 'Deudas BCP'. Si el cliente ya está en proceso prejudicial con el propio banco, jamás se le otorgará una ampliación por convenio. Directo a regularización.",
+        tip: "Los casos judiciales deben ser derivados a las áreas de cobranza para amortización previa.",
+        verdict: "BLOQUEO JUDICIAL",
+        verdictType: "danger",
+        verdictDesc: "El cliente mantiene cobranza contenciosa con el banco."
+      },
+      4: {
+        name: "Caso 4 (PPT): Revisión Interna y Segmento PYME",
+        tag: "Revisión Supervisión",
+        isApproved: false,
+        fails: ["f1", "f6", "f13"], // Archivo Fuerte, Clasificacion BCP, Segmento
+        scoreFails: [],
+        speech: "¡Mucha atención con este Caso 4, equipo! Aquí el error común sería decir 'el convenio no está habilitado', pero ¡ojo! La realidad operativa es otra:<br><br>1️⃣ <strong>Primero:</strong> tiene 'Archivo Negativo - Fuerte'. Esto ya nos indica de arranque que no va a proceder el préstamo por diversos factores internos del banco.<br>2️⃣ <strong>Segundo:</strong> tiene mala 'Clasificación BCP'. En nuestra propia casa financiera no califica bien, lo cual es otro indicativo clave de freno.<br>3️⃣ <strong>Y tercero:</strong> en 'Segmento' nos bota cruz roja porque tiene segmentación PYME. Esto significa que tendría que hacer trámites y gestiones distintas por su canal correspondiente.<br><br><strong>¿Se puede consultar? ¡Sí!</strong> Igual se puede realizar la consulta, pero esto no se descarta a ciegas ni se le dice al cliente que su empresa no tiene convenio: esto entra como un <strong>AVISO DE REVISIÓN interna con Supervisión BCP</strong> para que nos den el veredicto final.",
+        tip: "No le digas al cliente que su empresa no tiene convenio: el filtro 'Segmento' aquí salta por pertenecer al segmento PYME (requiere trámites diferenciados) sumado a sus bloqueos internos BCP.",
+        verdict: "AVISO DE REVISIÓN: REVISIÓN INTERNA CON SUPERVISIÓN BCP",
+        verdictType: "warning",
+        verdictDesc: "El cliente no procede directamente por Archivo Negativo Fuerte y Clasificación BCP interna. Además presenta Segmentación PYME (requiere trámites adicionales). Requiere consulta y escalamiento interno con Supervisión BCP."
+      },
+      5: {
+        name: "Caso 5 (PPT): Pérdida SBS y Refinanciado",
+        tag: "Riesgo Alto",
+        isApproved: false,
+        fails: ["f3", "f9"], // SBS Pérdida o Judicial, Cartera Refinanciada BCP
+        scoreFails: ["s1"],
+        speech: "En el Caso 5 el sistema detectó 'SBS Pérdida o Judicial' y crédito refinanciado internamente. Además, el score de Libre Disponibilidad está tachado. El riesgo de impago es altísimo para el banco.",
+        tip: "Un cliente calificado como 'Pérdida' en la SBS tiene más de 120 días de mora en el sistema.",
+        verdict: "RECHAZADO POR MORA SBS",
+        verdictType: "danger",
+        verdictDesc: "Calificación de pérdida en la central de riesgos SBS."
+      },
+      6: {
+        name: "Caso 6 (PPT): Bloqueo Operativo Interno",
+        tag: "Rechazado",
+        isApproved: false,
+        fails: ["f4", "f10"], // SBS Vencido, Bloqueos activos
+        scoreFails: ["s2"], // Compra deuda
+        speech: "El Caso 6 muestra que aunque calificaría en LD/RE, el cliente tiene atrasos reportados y bloqueos activos. No podemos comprarle deudas ni desembolsar mientras figure vencido.",
+        tip: "Recuerda: los filtros básicos son condiciones de paso obligatorio; si uno falla, el score no sirve.",
+        verdict: "BLOQUEADO EN SISTEMA",
+        verdictType: "danger",
+        verdictDesc: "Atrasos vigentes impiden el uso de la línea comercial."
+      },
+      7: {
+        name: "Caso 7 (PPT): Deudas Externas y Bloqueos",
+        tag: "Alerta Riesgo",
+        isApproved: false,
+        fails: ["f5", "f10"], // Archivo Negativo Deudas SBS, Bloqueos Activos
+        scoreFails: [],
+        speech: "En el Caso 7, el 'Archivo Negativo - Deudas SBS' tiene la cruz roja. Esto significa que tiene deudas impagas vigentes en otras entidades financieras que saltaron en el filtro de riesgo.",
+        tip: "Deudas morosas en otras entidades bloquean el acceso al Crédito Convenio BCP.",
+        verdict: "DEUDA EXTERNA IMPAGA",
+        verdictType: "danger",
+        verdictDesc: "Reporte negativo por morosidad en el sistema financiero general."
+      },
+      8: {
+        name: "Caso 8 (PPT): Judicial SBS & Deudas BCP",
+        tag: "Inviable",
+        isApproved: false,
+        fails: ["f3", "f8", "f12"], // SBS Pérdida, Cartera BCP Judicial, Deudas BCP
+        scoreFails: ["s1"],
+        speech: "Caso 8: triple cruz en temas judiciales y deudas en mora con nosotros. Este perfil no califica bajo ninguna circunstancia y requiere pago total de sus obligaciones vencidas.",
+        tip: "Nunca prometas excepciones al cliente cuando hay procesos judiciales en curso.",
+        verdict: "RECHAZO NO NEGOCIABLE",
+        verdictType: "danger",
+        verdictDesc: "Procesos judiciales activos tanto en SBS como internamente en el BCP."
+      },
+      9: {
+        name: "Caso 9 (PPT): Clasificación & Bloqueo Pasivo",
+        tag: "Retención",
+        isApproved: false,
+        fails: ["f2", "f7", "f11"], // Clasif SBS, Castigada, Bloqueos Pasivos
+        scoreFails: [],
+        speech: "Miren el Caso 9: tiene Bloqueos Pasivos en sus cuentas. Muchas veces esto ocurre por mandatos de embargo judicial o coactivo sobre su cuenta sueldo. Aunque el score esté activo, no se puede operar.",
+        tip: "Los bloqueos pasivos protegen al banco ante posibles mandatos de retención judicial de terceros.",
+        verdict: "CUENTAS CON BLOQUEO",
+        verdictType: "danger",
+        verdictDesc: "El cliente presenta restricciones legales o de retención en sus cuentas."
+      },
+      10: {
+        name: "Caso 10 (PPT): Clasificación Interna BCP",
+        tag: "Sin Campaña",
+        isApproved: false,
+        fails: ["f6", "f12"], // Clasificacion BCP, Deudas BCP
+        scoreFails: ["s2"], // CdD
+        speech: "Cerramos con el Caso 10: el cliente se encuentra mal calificado internamente en el BCP y mantiene deudas pendientes en mora. No califica para Compra de Deuda y requiere ponerse al día.",
+        tip: "El comportamiento de pago interno en cuentas BCP pesa tanto o más que la central de riesgos SBS.",
+        verdict: "RECHAZO INTERNO BCP",
+        verdictType: "danger",
+        verdictDesc: "Mala conducta de pago en las tarjetas o préstamos del mismo BCP."
+      }
+    };
+
+    let activeScenarioKey = 'ideal';
+    let isQuizActive = false;
+
+    function renderTables() {
+      const filtersContainer = document.getElementById('filtersContainer');
+      const scoresContainer = document.getElementById('scoresContainer');
+      const current = SCENARIOS[activeScenarioKey];
+
+      // 1. Basic Filters
+      filtersContainer.innerHTML = '';
+      BASIC_FILTERS.forEach((filter, index) => {
+        const isFail = current.fails.includes(filter.id);
+        const bgClass = index % 2 === 0 ? 'bg-bcp-rowOdd' : 'bg-bcp-rowEven';
+        const highlightClass = isFail ? 'highlight-fail' : '';
+
+        const row = document.createElement('div');
+        row.className = `grid grid-cols-12 items-center filter-clickable ${bgClass} ${highlightClass} transition-colors`;
+        row.onclick = () => showFilterInfo(filter);
+
+        row.innerHTML = `
+          <div class="col-span-8 md:col-span-9 px-3 py-1.5 flex items-center justify-between text-slate-800">
+            <span class="font-normal hover:text-blue-700">${filter.name}</span>
+            <i class="fa-solid fa-circle-info text-[11px] text-slate-300 hover:text-blue-500"></i>
+          </div>
+          <div class="col-span-4 md:col-span-3 py-1 text-center font-bold flex items-center justify-center border-l border-blue-200">
+            ${isFail 
+              ? '<span class="cross-icon text-lg md:text-xl font-bold">✕</span>' 
+              : '<span class="check-icon text-lg md:text-xl font-bold">✔</span>'
+            }
+          </div>
+        `;
+        filtersContainer.appendChild(row);
+      });
+
+      // 2. Scores
+      scoresContainer.innerHTML = '';
+      SCORES.forEach((score, index) => {
+        const isFail = current.scoreFails.includes(score.id);
+        const bgClass = index % 2 === 0 ? 'bg-bcp-rowOdd' : 'bg-bcp-rowEven';
+        const highlightClass = isFail ? 'highlight-fail' : '';
+
+        const row = document.createElement('div');
+        row.className = `grid grid-cols-12 items-center filter-clickable ${bgClass} ${highlightClass} transition-colors`;
+        row.onclick = () => showFilterInfo(score);
+
+        row.innerHTML = `
+          <div class="col-span-8 md:col-span-9 px-3 py-1.5 flex items-center justify-between text-slate-800">
+            <span class="font-normal hover:text-blue-700">${score.name}</span>
+            <i class="fa-solid fa-circle-info text-[11px] text-slate-300 hover:text-blue-500"></i>
+          </div>
+          <div class="col-span-4 md:col-span-3 py-1 text-center font-bold flex items-center justify-center border-l border-blue-200">
+            ${isFail 
+              ? '<span class="cross-icon text-lg md:text-xl font-bold">✕</span>' 
+              : '<span class="check-icon text-lg md:text-xl font-bold">✔</span>'
+            }
+          </div>
+        `;
+        scoresContainer.appendChild(row);
+      });
+
+      // Update Verdict and Trainer Text
+      updateRightPanel(current);
+    }
+
+    function updateRightPanel(current) {
+      const verdictCard = document.getElementById('verdictCard');
+      const verdictTitle = document.getElementById('verdictTitle');
+      const verdictIcon = document.getElementById('verdictIcon');
+      const verdictTag = document.getElementById('verdictTag');
+      const verdictSummary = document.getElementById('verdictSummary');
+      const metricFilters = document.getElementById('metricFilters');
+      const metricScores = document.getElementById('metricScores');
+      const trainerSpeechText = document.getElementById('trainerSpeechText');
+      const trainerTipText = document.getElementById('trainerTipText');
+      const clientStatusBadge = document.getElementById('clientStatusBadge');
+
+      trainerSpeechText.innerHTML = `"${current.speech}"`;
+      trainerTipText.textContent = current.tip;
+
+      const totalFiltersPassed = 13 - current.fails.length;
+      const totalScoresPassed = 2 - current.scoreFails.length;
+
+      metricFilters.textContent = `${totalFiltersPassed} de 13 aprobados`;
+      metricScores.textContent = `${totalScoresPassed} de 2 aprobados`;
+
+      if (current.isApproved) {
+        verdictCard.className = "bg-white rounded-xl shadow-md border-2 border-emerald-500 p-5 relative overflow-hidden transition-all duration-300";
+        verdictTitle.className = "text-xl font-extrabold text-emerald-700 flex items-center gap-2";
+        verdictIcon.className = "fa-solid fa-circle-check text-emerald-600";
+        verdictTag.className = "px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800";
+        clientStatusBadge.className = "mt-1 inline-block px-2.5 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300";
+        clientStatusBadge.textContent = "Califica para Oferta";
+      } else if (current.verdictType === 'warning') {
+        verdictCard.className = "bg-white rounded-xl shadow-md border-2 border-amber-500 p-5 relative overflow-hidden transition-all duration-300";
+        verdictTitle.className = "text-xl font-extrabold text-amber-700 flex items-center gap-2";
+        verdictIcon.className = "fa-solid fa-triangle-exclamation text-amber-600";
+        verdictTag.className = "px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800";
+        clientStatusBadge.className = "mt-1 inline-block px-2.5 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300";
+        clientStatusBadge.textContent = "Riesgo OK / Sin Oferta";
+      } else {
+        verdictCard.className = "bg-white rounded-xl shadow-md border-2 border-rose-500 p-5 relative overflow-hidden transition-all duration-300";
+        verdictTitle.className = "text-xl font-extrabold text-rose-700 flex items-center gap-2";
+        verdictIcon.className = "fa-solid fa-circle-xmark text-rose-600";
+        verdictTag.className = "px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800";
+        clientStatusBadge.className = "mt-1 inline-block px-2.5 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300";
+        clientStatusBadge.textContent = "Bloqueado por Riesgo";
+      }
+
+      verdictTitle.querySelector('span').textContent = current.verdict;
+      verdictTag.textContent = current.tag;
+      verdictSummary.textContent = current.verdictDesc;
+
+      // Update scenario buttons highlight
+      document.querySelectorAll('.scenario-pill').forEach(btn => {
+        const c = btn.getAttribute('data-case');
+        if (c == activeScenarioKey) {
+          btn.className = "scenario-pill px-2.5 py-1 rounded border font-semibold transition bg-bcp-blue text-white border-bcp-blue shadow-sm";
+        } else {
+          btn.className = "scenario-pill px-2 py-1 rounded border font-semibold transition bg-white text-slate-700 hover:bg-slate-100 border-slate-300";
+        }
+      });
+    }
+
+    window.loadScenario = function(key) {
+      activeScenarioKey = key;
+      renderTables();
+      const feedback = document.getElementById('quizAnswerFeedback');
+      feedback.classList.add('hidden');
+    };
+
+    // Next / Prev navigation
+    const scenarioKeysOrder = ['ideal', 'no_score', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    document.getElementById('btnNextCase').addEventListener('click', () => {
+      const idx = scenarioKeysOrder.indexOf(activeScenarioKey == 'ideal' || activeScenarioKey == 'no_score' ? activeScenarioKey : parseInt(activeScenarioKey));
+      const nextIdx = (idx + 1) % scenarioKeysOrder.length;
+      loadScenario(scenarioKeysOrder[nextIdx]);
+    });
+
+    document.getElementById('btnPrevCase').addEventListener('click', () => {
+      const idx = scenarioKeysOrder.indexOf(activeScenarioKey == 'ideal' || activeScenarioKey == 'no_score' ? activeScenarioKey : parseInt(activeScenarioKey));
+      const prevIdx = (idx - 1 + scenarioKeysOrder.length) % scenarioKeysOrder.length;
+      loadScenario(scenarioKeysOrder[prevIdx]);
+    });
+
+    // Copy Speech
+    document.getElementById('btnCopySpeech').addEventListener('click', () => {
+      const text = document.getElementById('trainerSpeechText').innerText;
+      copyToClipboard(text);
+    });
+
+    function copyToClipboard(text) {
+      const tempInput = document.createElement("textarea");
+      tempInput.value = text;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand("copy");
+      document.body.removeChild(tempInput);
+      showToast("Speech copiado al portapapeles");
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      toastMsg.textContent = message;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 2500);
+    }
+
+    // Cheat Sheet Modals
+    const cheatSheetModal = document.getElementById('cheatSheetModal');
+    document.getElementById('btnCheatSheet').addEventListener('click', () => cheatSheetModal.classList.remove('hidden'));
+    document.getElementById('btnCloseCheatSheet').addEventListener('click', () => cheatSheetModal.classList.add('hidden'));
+    document.getElementById('btnCloseCheatSheetBtn').addEventListener('click', () => cheatSheetModal.classList.add('hidden'));
+
+    function showFilterInfo(item) {
+      showToast(`Filtro "${item.name}": ${item.desc}`);
+    }
+
+    // Toggle Quiz Mode
+    const quizPanel = document.getElementById('quizPanel');
+    const btnToggleQuiz = document.getElementById('btnToggleQuiz');
+    const lblQuizToggle = document.getElementById('lblQuizToggle');
+
+    btnToggleQuiz.addEventListener('click', () => {
+      isQuizActive = !isQuizActive;
+      if (isQuizActive) {
+        quizPanel.classList.remove('hidden');
+        lblQuizToggle.textContent = "Ocultar Preguntas";
+        btnToggleQuiz.classList.replace('bg-emerald-600', 'bg-slate-700');
+      } else {
+        quizPanel.classList.add('hidden');
+        lblQuizToggle.textContent = "Modo Preguntas al Equipo";
+        btnToggleQuiz.classList.replace('bg-slate-700', 'bg-emerald-600');
+      }
+    });
+
+    window.testParticipantAnswer = function(saidYes) {
+      const current = SCENARIOS[activeScenarioKey];
+      const feedback = document.getElementById('quizAnswerFeedback');
+      feedback.classList.remove('hidden');
+
+      const isActuallyApproved = current.isApproved;
+
+      if (saidYes === isActuallyApproved) {
+        feedback.className = "p-3 rounded-lg text-xs leading-snug bg-emerald-900/80 text-emerald-200 border border-emerald-600";
+        feedback.innerHTML = `🎉 <strong>¡Respuesta Correcta del Equipo!</strong> ${isActuallyApproved 
+          ? 'El cliente tiene 13/13 filtros y scores válidos. ¡Procede al desembolso!' 
+          : 'Efectivamente NO califica. ' + current.verdictDesc}`;
+      } else {
+        feedback.className = "p-3 rounded-lg text-xs leading-snug bg-rose-900/80 text-rose-200 border border-rose-600";
+        feedback.innerHTML = `❌ <strong>¡Cuidado con la respuesta!</strong> ${isActuallyApproved 
+          ? 'El cliente SÍ califica porque tiene todos los checks verdes habilitados.' 
+          : 'El cliente NO puede desembolsar. Motivo: ' + current.verdictDesc}`;
+      }
+    };
+
+    // Full screen
+    document.getElementById('btnFullScreen').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {
+          showToast("Pantalla completa no disponible");
+        });
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    });
+
+    // Initial load
+    renderTables();
+  </script>
+</body>
+</html>
